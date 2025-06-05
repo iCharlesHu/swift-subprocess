@@ -148,11 +148,12 @@ public struct BytesOutput: OutputProtocol {
             // Show not happen due to type system constraints
             fatalError("Trying to capture output without file descriptor")
         }
-        #if os(Windows)
-        return try await diskIO.fileDescriptor.read(upToLength: self.maxSize) ?? []
-        #else
-        let result = try await diskIO.dispatchIO.read(upToLength: self.maxSize)
+
+        let result = try await AsyncIO.shared.read(from: diskIO, upTo: self.maxSize)
+        #if canImport(Darwin)
         return result?.array() ?? []
+        #else
+        return result ?? []
         #endif
     }
 
@@ -275,12 +276,11 @@ extension OutputProtocol {
             fatalError("Trying to capture output without file descriptor")
         }
 
-        #if os(Windows)
-        let result = try await diskIO.fileDescriptor.read(upToLength: self.maxSize)
-        return try self.output(from: result ?? [])
-        #else
-        let result = try await diskIO.dispatchIO.read(upToLength: self.maxSize)
+        let result = try await AsyncIO.shared.read(from: diskIO, upTo: self.maxSize)
+        #if canImport(Darwin)
         return try self.output(from: result ?? .empty)
+        #else
+        return try self.output(from: result ?? [])
         #endif
     }
 }
@@ -304,20 +304,7 @@ extension OutputProtocol where OutputType == Void {
 #if SubprocessSpan
 @available(SubprocessSpan, *)
 extension OutputProtocol {
-    #if os(Windows)
-    internal func output(from data: [UInt8]) throws -> OutputType {
-        guard !data.isEmpty else {
-            let empty = UnsafeRawBufferPointer(start: nil, count: 0)
-            let span = RawSpan(_unsafeBytes: empty)
-            return try self.output(from: span)
-        }
-
-        return try data.withUnsafeBufferPointer { ptr in
-            let span = RawSpan(_unsafeBytes: UnsafeRawBufferPointer(ptr))
-            return try self.output(from: span)
-        }
-    }
-    #else
+    #if canImport(Darwin)
     internal func output(from data: DispatchData) throws -> OutputType {
         guard !data.isEmpty else {
             let empty = UnsafeRawBufferPointer(start: nil, count: 0)
@@ -331,7 +318,20 @@ extension OutputProtocol {
             return try self.output(from: span)
         }
     }
-    #endif // os(Windows)
+    #else
+    internal func output(from data: [UInt8]) throws -> OutputType {
+        guard !data.isEmpty else {
+            let empty = UnsafeRawBufferPointer(start: nil, count: 0)
+            let span = RawSpan(_unsafeBytes: empty)
+            return try self.output(from: span)
+        }
+
+        return try data.withUnsafeBufferPointer { ptr in
+            let span = RawSpan(_unsafeBytes: UnsafeRawBufferPointer(ptr))
+            return try self.output(from: span)
+        }
+    }
+    #endif // canImport(Darwin)
 }
 #endif
 

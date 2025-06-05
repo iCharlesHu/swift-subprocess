@@ -40,6 +40,7 @@ extension SubprocessError {
             case failedToReadFromSubprocess
             case failedToWriteToSubprocess
             case failedToMonitorProcess
+            case asyncIOFailed(String)
             // Signal
             case failedToSendSignal(Int32)
             // Windows Only
@@ -64,18 +65,20 @@ extension SubprocessError {
                 return 4
             case .failedToMonitorProcess:
                 return 5
-            case .failedToSendSignal(_):
+            case .asyncIOFailed(_):
                 return 6
-            case .failedToTerminate:
+            case .failedToSendSignal(_):
                 return 7
-            case .failedToSuspend:
+            case .failedToTerminate:
                 return 8
-            case .failedToResume:
+            case .failedToSuspend:
                 return 9
-            case .failedToCreatePipe:
+            case .failedToResume:
                 return 10
-            case .invalidWindowsPath(_):
+            case .failedToCreatePipe:
                 return 11
+            case .invalidWindowsPath(_):
+                return 12
             }
         }
 
@@ -103,6 +106,8 @@ extension SubprocessError: CustomStringConvertible, CustomDebugStringConvertible
             return "Failed to write bytes to the child process."
         case .failedToMonitorProcess:
             return "Failed to monitor the state of child process with underlying error: \(self.underlyingError!)"
+        case .asyncIOFailed(let reason):
+            return "An error occurred within the AsyncIO subsystem: \(reason). Underlying error: \(self.underlyingError!)"
         case .failedToSendSignal(let signal):
             return "Failed to send signal \(signal) to the child process."
         case .failedToTerminate:
