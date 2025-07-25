@@ -145,8 +145,7 @@ extension Configuration {
             threadHandle: processInfo.hThread
         )
         let execution = Execution(
-            processIdentifier: pid,
-            consoleBehavior: self.platformOptions.consoleBehavior
+            processIdentifier: pid
         )
 
         do {
@@ -290,8 +289,7 @@ extension Configuration {
             threadHandle: processInfo.hThread
         )
         let execution = Execution(
-            processIdentifier: pid,
-            consoleBehavior: self.platformOptions.consoleBehavior
+            processIdentifier: pid
         )
 
         do {
